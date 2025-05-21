@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Link Opener</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background: #f0f2f5;
+            height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .wrapper {
+            max-width: 900px;
+            margin: 0 auto;
+            background: #fff;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.07);
+            border-radius: 8px;
+            padding: 24px;
+        }
+
+        h1 {
+            color: #1a1a1a;
+            font-size: 24px;
+            margin-bottom: 24px;
+            font-weight: 600;
+        }
+
+        textarea {
+            width: 100%;
+            height: 350px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 15px;
+            line-height: 1.5;
+            resize: vertical;
+            margin-bottom: 16px;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #88b2ff;
+            box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.2);
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        button {
+            background: #000000;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 12px 16px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #44d056;
+        }
+
+        button:disabled {
+            background: #95aacf;
+            cursor: not-allowed;
+        }
+
+        .stats {
+            color: #5f6368;
+            font-size: 14px;
+            min-height: 20px;
+            margin-top: 8px;
+        }
+
+        .notification {
+            margin-top: 16px;
+            padding: 12px;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .success {
+            background-color: #e6f4ea;
+            color: #137333;
+        }
+
+        .error {
+            background-color: #fce8e6;
+            color: #c5221f;
+        }
+
+        .info {
+            font-size: 14px;
+            color: #5f6368;
+            line-height: 1.5;
+
+            padding-top: 16px;
+            border-top: 1px solid #eee;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrapper">
+        <h1>Link Opener</h1>
+        <textarea id="input" placeholder="Paste text containing URLs here..."></textarea>
+        <div class="stats" id="counter"></div>
+        <div class="controls">
+            <button id="openBtn">Open All Links</button>
+        </div>
+        <div class="notification" id="notification"></div>
+        <div class="info">
+            URL opener for logfiles and commits. Paste text with URLs and hit enter or click the button to open each link in a new
+            tab. Works with any http:// or https:// URL.
+        </div>
+        <br>
+        <p class="info">You will have to disable adblockers and allow popups for all links to open properly</p>
+
+    </div>
+
+    <script>
+        let urls = [];
+
+        document.getElementById('input').addEventListener('input', function () {
+            urls = extractUrls(this.value);
+            updateCounter();
+        });
+
+        document.getElementById('input').addEventListener('keydown', function (event) {
+            if (event.key === 'Enter') {
+                document.getElementById('openBtn').click();
+            }
+        });
+
+        document.getElementById('input').addEventListener('paste', function () {
+            setTimeout(() => {
+                urls = extractUrls(this.value);
+                updateCounter();
+            }, 10);
+        });
+
+        document.getElementById('openBtn').addEventListener('click', function () {
+            const text = document.getElementById('input').value;
+
+            if (!text) {
+                showNotification("Please paste text containing URLs first", "error");
+                return;
+            }
+
+            if (urls.length === 0) {
+                urls = extractUrls(text);
+            }
+
+            if (urls.length === 0) {
+                showNotification("No valid URLs found", "error");
+                return;
+            }
+
+            this.disabled = true;
+            showNotification(`Opening ${urls.length} links...`, "success");
+
+            openSequentially(urls, 0, () => {
+                document.getElementById('input').value = "";
+                document.getElementById('counter').textContent = "";
+                document.getElementById('openBtn').disabled = false;
+                showNotification(`Opened ${urls.length} links successfully`, "success");
+                urls = [];
+            });
+        });
+
+        function extractUrls(text) {
+            const regex = /(https?:\/\/[^\s]+)/g;
+            const matches = text.match(regex) || [];
+            return matches.map(url => url.replace(/[.,;:)"']+$/, ""));
+        }
+
+        function updateCounter() {
+            const counter = document.getElementById('counter');
+            counter.textContent = urls.length > 0 ? `${urls.length} URLs detected` : "";
+        }
+
+        function showNotification(message, type) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type}`;
+            notification.style.display = "block";
+
+            setTimeout(() => {
+                notification.style.display = "none";
+            }, 5000);
+        }
+
+        function openSequentially(links, index, callback) {
+            if (index >= links.length) {
+                if (callback) callback();
+                return;
+            }
+
+            window.open(links[index], '_blank');
+
+            setTimeout(() => {
+                openSequentially(links, index + 1, callback);
+            }, 300);
+        }
+    </script>
+</body>
+
+</html>
